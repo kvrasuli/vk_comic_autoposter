@@ -1,6 +1,6 @@
 # Comics publisher
 
-This is the app automatically posting to a random XCKD comic to your VK group.
+This is the app automatically posting a random XCKD comic to your VK group wall.
 
 ### How to use
 
