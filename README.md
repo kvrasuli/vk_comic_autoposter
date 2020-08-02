@@ -4,7 +4,7 @@ This is the app automatically posting to a random XCKD comic to your VK group.
 
 ### How to use
 
-You'll need to create two environment variables with your VK access token group ID where to post:
+You'll need to create two environment variables with your VK access token and group ID where to post:
 ```
 ACCESS_TOKEN='your access token'
 GROUP_ID='your group ID'
