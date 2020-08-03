@@ -1,11 +1,8 @@
 import requests
 from pathlib import Path
-import json
 import os
 from dotenv import load_dotenv
 import random
-from pathlib import Path
-
 
 
 def get_file_extension(url):
@@ -35,35 +32,56 @@ def get_upload_url(token, group_id):
     vk_url = 'https://api.vk.com/method/photos.getWallUploadServer'
     vk_params = {'access_token': token, 'v': '5.122', 'group_id': group_id}
     response = requests.get(vk_url, params=vk_params)
-    response.raise_for_status()
-    return response.json()['response']['upload_url']
+    upload_url = response.json()
+    if 'error' in upload_url:
+        raise requests.exceptions.HTTPError(upload_url['error'])
+    return upload_url['response']['upload_url']
 
 
 def post_a_comic(upload_url, token, message, pic_filename, group_id):
-    """put all three requests to VK api in one function cause they can be used only together"""
-    
+    """put all three requests to VK api in one
+    function cause they can be used only together"""
+
     with open(pic_filename, 'rb') as file:
         files = {'photo': file}
         response = requests.post(upload_url, files=files)
-        response.raise_for_status()
         uploaded_pic = response.json()
+        if 'error' in uploaded_pic:
+            raise requests.exceptions.HTTPError(uploaded_pic['error'])
 
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
-    params = {'server': uploaded_pic['server'], 'photo': uploaded_pic['photo'], 'hash': uploaded_pic['hash'],
-    'access_token': token, 'v': '5.122', 'group_id': group_id}
+    params = {
+        'server': uploaded_pic['server'],
+        'photo': uploaded_pic['photo'],
+        'hash': uploaded_pic['hash'],
+        'access_token': token,
+        'v': '5.122',
+        'group_id': group_id
+    }
     response = requests.post(url, params=params)
-    response.raise_for_status()
     saved_pic = response.json()
-    
+    if 'error' in saved_pic:
+        raise requests.exceptions.HTTPError(saved_pic['error'])
+    saved_pic_ids = saved_pic['response'][0]
+
     url = 'https://api.vk.com/method/wall.post'
-    params = {'attachments': f"photo{saved_pic['response'][0]['owner_id']}_{saved_pic['response'][0]['id']}",
-    'access_token': token, 'v': '5.122', 'owner_id': f'-{group_id}', 'from_group': '1', 'message': message}
+    attachments = f"photo{saved_pic_ids['owner_id']}_{saved_pic_ids['id']}"
+    params = {
+        'attachments': attachments,
+        'access_token': token,
+        'v': '5.122',
+        'owner_id': f'-{group_id}',
+        'from_group': '1',
+        'message': message
+    }
     response = requests.post(url, params=params)
-    response.raise_for_status()
+    posted_pic = response.json()
+    if 'error' in posted_pic:
+        raise requests.exceptions.HTTPError(posted_pic['error'])
 
 
 def get_number_of_comics():
-    url = f'http://xkcd.com/info.0.json'
+    url = 'http://xkcd.com/info.0.json'
     response = requests.get(url)
     response.raise_for_status()
     last_pic = response.json()
@@ -76,9 +94,11 @@ def main():
     group_id = os.getenv('GROUP_ID')
     number_of_comic = get_number_of_comics()
     pic_filename, message = get_a_comic(number_of_comic)
-    upload_url = get_upload_url(vk_token, group_id)
-    post_a_comic(upload_url, vk_token, message, pic_filename, group_id)
-    Path.unlink(Path.cwd().joinpath(pic_filename))
+    try:
+        upload_url = get_upload_url(vk_token, group_id)
+        post_a_comic(upload_url, vk_token, message, pic_filename, group_id)
+    finally:
+        Path.unlink(Path.cwd().joinpath(pic_filename))
 
 
 if __name__ == '__main__':
