@@ -28,13 +28,17 @@ def get_a_comic(number_of_comic):
     return pic_filename, comic_pic['alt']
 
 
+def check_http_response_error(response):
+    if 'error' in response:
+        raise requests.exceptions.HTTPError(response['error'])
+
+
 def get_upload_url(token, group_id):
     vk_url = 'https://api.vk.com/method/photos.getWallUploadServer'
     vk_params = {'access_token': token, 'v': '5.122', 'group_id': group_id}
     response = requests.get(vk_url, params=vk_params)
     upload_url = response.json()
-    if 'error' in upload_url:
-        raise requests.exceptions.HTTPError(upload_url['error'])
+    check_http_response_error(upload_url)
     return upload_url['response']['upload_url']
 
 
@@ -46,8 +50,7 @@ def post_a_comic(upload_url, token, message, pic_filename, group_id):
         files = {'photo': file}
         response = requests.post(upload_url, files=files)
         uploaded_pic = response.json()
-        if 'error' in uploaded_pic:
-            raise requests.exceptions.HTTPError(uploaded_pic['error'])
+        check_http_response_error(uploaded_pic)
 
     url = 'https://api.vk.com/method/photos.saveWallPhoto'
     params = {
@@ -60,8 +63,7 @@ def post_a_comic(upload_url, token, message, pic_filename, group_id):
     }
     response = requests.post(url, params=params)
     saved_pic = response.json()
-    if 'error' in saved_pic:
-        raise requests.exceptions.HTTPError(saved_pic['error'])
+    check_http_response_error(saved_pic)
     saved_pic_ids = saved_pic['response'][0]
 
     url = 'https://api.vk.com/method/wall.post'
@@ -76,8 +78,7 @@ def post_a_comic(upload_url, token, message, pic_filename, group_id):
     }
     response = requests.post(url, params=params)
     posted_pic = response.json()
-    if 'error' in posted_pic:
-        raise requests.exceptions.HTTPError(posted_pic['error'])
+    check_http_response_error(posted_pic)
 
 
 def get_number_of_comics():
